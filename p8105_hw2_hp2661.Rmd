@@ -1,0 +1,325 @@
+---
+title: "p8105_hw2_hp2661"
+author: "Huizhong Peng"
+date: "2024-09-27"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(dplyr)
+library(readxl)
+```
+
+# Problem 1
+
+Import the CSV file and clean the data.
+
+```{r message=FALSE}
+dat_NYC = read_csv(
+  file = "./NYC_Transit_Subway_Entrance_And_Exit_Data.csv"
+  ) |> 
+  janitor::clean_names() |> 
+  select(line, 
+         station_name, 
+         station_latitude, 
+         station_longitude, 
+         starts_with("route"), 
+         entry, 
+         vending, 
+         entrance_type, 
+         ada) |> 
+  mutate(
+    entry = ifelse(entry == "YES", TRUE, FALSE), 
+    across(route8:route11, as.character)
+    ) |> 
+  distinct() # remove duplicate rows
+
+skimr::skim(dat_NYC)
+```
+
+This dataset contains 19 variables in total, including 15 character variables 
+(Line, station name, Route 1-11, vending and entrance type), 2 numeric variables 
+(station latitude/longitude), and 2 logical variables (entry and ADA compliance). 
+I rename variables, selected the key columns, converted the character variable 
+"Entry" to a logical variable, and converted the numeric variables route8-11 to 
+the character variables, and removed the duplicate rows.
+There is no need to remove NA.
+The dimension of the resulting dataset is 684 × 19, and they are tidy as each 
+column represents a variable and each row represents one observation.
+
+**Question 1**
+
+```{r results='hide'}
+station = dat_NYC |> 
+  distinct(station_name, line, .keep_all = TRUE)
+
+nrow(station)
+```
+
+There are 465 distinct stations.
+
+
+**Question 2**
+
+```{r results='hide'}
+station |> 
+  filter(ada == TRUE) |> 
+  nrow()
+```
+
+84 stations are ADA compliant. 
+
+
+**Question 3**
+
+```{r results='hide'}
+dat_NYC |> 
+  filter(vending == "NO") |> 
+  summarize(proportion = mean(entry))
+```
+
+38.46% of station entrances / exits without vending allow entrance.
+
+
+**Question 4**
+
+Reformat data so that route number and route name are distinct variables.
+
+```{r}
+dat_NYC_longer = dat_NYC |> 
+  pivot_longer(
+    cols = starts_with("route"), 
+    names_to = "route_number", 
+    values_to = "route_name", 
+    values_drop_na = TRUE
+  ) |> 
+  mutate(
+    route_number = parse_number(route_number)
+  )
+
+head(dat_NYC_longer, 5)
+```
+
+```{r results='hide'}
+station_A = dat_NYC_longer |>
+  distinct(station_name, line, .keep_all = TRUE) |> 
+  filter(route_name == "A")
+
+nrow(station_A)
+
+station_A |> 
+  filter(ada == TRUE) |> 
+  nrow()
+```
+
+60 distinct stations serve the A train. 
+Of these stations that serve the A train, 17 stations are ADA compliant.
+
+
+# Problem 2
+
+Import the dataset and clean the sheet.
+
+```{r}
+MR = read_excel(
+  path = "./202309 Trash Wheel Collection Data.xlsx", 
+  sheet = 1, 
+  range = "A2:N586"
+  ) |> 
+  janitor::clean_names() |> 
+  filter(!is.na(dumpster)) |> 
+  mutate(
+    sports_balls = as.integer(round(sports_balls, 0)), 
+    source = "MR", 
+    year = as.numeric(year)
+  )
+
+Professor = read_excel(
+  path = "./202309 Trash Wheel Collection Data.xlsx", 
+  sheet = 2, 
+  range = "A2:M108"
+  ) |> 
+  janitor::clean_names() |> 
+  filter(!is.na(dumpster)) |> 
+  mutate(
+    source = "Professor"
+  )
+
+Gwynnda = read_excel(
+  path = "./202309 Trash Wheel Collection Data.xlsx", 
+  sheet = 4, 
+  range = "A2:L157"
+  ) |> 
+  janitor::clean_names() |> 
+  filter(!is.na(dumpster)) |> 
+  mutate(
+    source = "Gwynnda"
+  )
+
+# combine the datasets
+
+trash_tidy = bind_rows(MR, Professor, Gwynnda)
+
+str(trash_tidy)
+```
+
+There are `r nrow(trash_tidy)` observations and `r ncol(trash_tidy)` variables 
+including 12 numeric variables (eg., weight_tons, cigarette_butts, homes_powered) 
+and 2 character variables (month, source). 
+
+```{r results='hide'}
+# total weight of trash collected by Professor Trash Wheel
+
+trash_tidy |> 
+  filter(
+    source == "Professor"
+  ) |> 
+  summarize(
+    total_weight_prof = sum(weight_tons, na.rm = TRUE)
+  )
+
+# total number of cigarette butts collected by Gwynnda in June of 2022
+
+trash_tidy |> 
+  filter(
+    source == "Gwynnda",
+    year == 2022, 
+    month == "June"
+  ) |> 
+  summarize(
+    total_ciga_gwy = sum(cigarette_butts, na.rm = TRUE)
+  )
+```
+
+The total weight of trash collected by Professor Trash Wheel is 216.26 tons.
+The total number of cigarette butts collected by Gwynnda in June of 2022 is 18120.
+
+
+# Problem 3
+
+Import the datasets and clean the data.
+
+```{r message=FALSE, results='hide'}
+dat_bakers = read_csv("./gbb_datasets/bakers.csv") |> 
+  janitor::clean_names() |> 
+  separate(
+    baker_name, 
+    into = c("baker_first_name", "baker_last_name"), 
+    sep = " "
+  ) |> 
+  rename(baker = baker_first_name)
+
+dat_bakes = read_csv("./gbb_datasets/bakes.csv") |> 
+  janitor::clean_names() |> 
+  mutate(
+    baker = ifelse(baker == "\"Jo\"", "Jo", baker)
+  )
+
+dat_results = read_csv("./gbb_datasets/results.csv", skip = 2) |> 
+  janitor::clean_names() |> 
+  filter(!is.na(result)) |> 
+  mutate(
+    baker = ifelse(baker == "Joanne", "Jo", baker)
+  )
+
+# check 
+
+anti_join(dat_bakers, dat_results)
+anti_join(dat_bakers, dat_bakes)
+
+# merge
+
+dat_merge1 = left_join(dat_results, dat_bakes) 
+dat_merge2 = left_join(dat_merge1, dat_bakers)
+
+# organize cols
+
+dat_merge_f = dat_merge2 |> 
+  distinct() |> 
+  select(series, episode, baker, signature_bake, technical, result, 
+         show_stopper, everything())
+```
+
+
+```{r}
+# summary
+
+skimr::skim(dat_merge_f)
+
+# write csv
+
+write_csv(dat_merge_f, "./gbb_datasets/merge_data.csv")
+```
+
+**Cleaning progress:**
+
+- Use reasonable variable names in all datasets.
+
+- In dataset "dat_bakers", the variable "baker_name" had different name and form 
+from other two datasets, so separate this variable into two columns "baker_first_name" 
+and "baker_last_name", and rename the "baker_first_name" as "baker".
+
+- In dataset "dat_bakes", "Jo" in variable "baker" had a different name form 
+from other datasets, so remove the quotation marks around "Jo". 
+
+- In dataset "dat_results", omit the first two useless rows and change "Joanne" 
+in column "baker" to "Jo". 
+
+
+**Briefly Discussion:**
+
+There are 710 rows and 11 columns, including 7 character variables (eg., baker, 
+result, show_stopper) and 4 numeric variables (eg., series, episode, technical). 
+Variables "signature_bake", "show_stopper" and "technical" have missing values.
+
+**Star bakers / Winners:**
+
+```{r}
+star_baker = dat_merge_f |> 
+  filter(series >= 5 & series <= 10 & result %in% c("STAR BAKER", "WINNER")) |> 
+  select(series, episode, result, baker) |> 
+  arrange(series, episode)
+
+star_baker
+```
+
+- Nadiya  obtained 3 "star baker" in series 6. 
+- Candice obtained 3 "star baker" in series 7. 
+- Sophie  obtained 2 "star baker" in series 8. 
+- Rahul   obtained 2 "star baker" in series 9. 
+- **It is not surprising that they are winners.**\
+\
+- Nancy obtained 1 "star baker" in series 5. 
+- David never obtained "star baker" in series 10. 
+- **It is hard to predict that they would be the winners.**
+
+\
+
+**Viewers:**
+
+```{r}
+dat_viewers = read_csv("./gbb_datasets/viewers.csv") |> 
+  janitor::clean_names()
+
+print(dat_viewers, n = 10)
+
+average_1 = dat_viewers |> 
+  pull(series_1) |> 
+  mean(na.rm = T)
+average_5 = dat_viewers |> 
+  pull(series_5) |> 
+  mean(na.rm = T)
+```
+
+```{r results='hide'}
+average_1
+average_5
+```
+
+The average viewership in Season 1 is 2.77. 
+\
+The average viewership in Season 5 is 10.04. 
+
+
+
