@@ -38,14 +38,14 @@ dat_NYC = read_csv(
 skimr::skim(dat_NYC)
 ```
 
-This dataset contains 19 variables in total, including 15 character variables 
+This dataset contains `r ncol(dat_NYC)` variables in total, including 15 character variables 
 (Line, station name, Route 1-11, vending and entrance type), 2 numeric variables 
 (station latitude/longitude), and 2 logical variables (entry and ADA compliance). 
 I rename variables, selected the key columns, converted the character variable 
 "Entry" to a logical variable, and converted the numeric variables route8-11 to 
 the character variables, and removed the duplicate rows.
 There is no need to remove NA.
-The dimension of the resulting dataset is 684 × 19, and they are tidy as each 
+The dimension of the resulting dataset is `r nrow(dat_NYC)` × `r ncol(dat_NYC)`, and they are tidy as each 
 column represents a variable and each row represents one observation.
 
 **Question 1**
@@ -53,33 +53,30 @@ column represents a variable and each row represents one observation.
 ```{r results='hide'}
 station = dat_NYC |> 
   distinct(station_name, line, .keep_all = TRUE)
-
-nrow(station)
 ```
 
-There are 465 distinct stations.
+There are `r nrow(station)` distinct stations.
 
 
 **Question 2**
 
 ```{r results='hide'}
-station |> 
-  filter(ada == TRUE) |> 
-  nrow()
+ada_com <- station |> 
+  filter(ada == TRUE)
 ```
 
-84 stations are ADA compliant. 
+`r nrow(ada_com)` stations are ADA compliant. 
 
 
 **Question 3**
 
 ```{r results='hide'}
-dat_NYC |> 
+prop = dat_NYC |> 
   filter(vending == "NO") |> 
   summarize(proportion = mean(entry))
 ```
 
-38.46% of station entrances / exits without vending allow entrance.
+`r prop` of station entrances / exits without vending allow entrance.
 
 
 **Question 4**
@@ -102,19 +99,16 @@ head(dat_NYC_longer, 5)
 ```
 
 ```{r results='hide'}
-station_A = dat_NYC_longer |>
+station_A <-  dat_NYC_longer |>
   distinct(station_name, line, .keep_all = TRUE) |> 
   filter(route_name == "A")
 
-nrow(station_A)
-
-station_A |> 
-  filter(ada == TRUE) |> 
-  nrow()
+ada_acom <- station_A |> 
+  filter(ada == TRUE) 
 ```
 
-60 distinct stations serve the A train. 
-Of these stations that serve the A train, 17 stations are ADA compliant.
+`r nrow(station_A)` distinct stations serve the A train. 
+Of these stations that serve the A train, `r nrow(ada_acom)` stations are ADA compliant.
 
 
 # Problem 2
@@ -191,6 +185,8 @@ total_num <- trash_tidy |>
     total_ciga_gwy = sum(cigarette_butts, na.rm = TRUE)
   )
 
+options(scipen = 999)
+
 total_num2 <- trash_tidy |> 
   filter(
     source == "Gwynnda",
@@ -264,7 +260,7 @@ write_csv(dat_merge_f, "./gbb_datasets/merge_data.csv")
 
 **Cleaning progress:**
 
-- Use reasonable variable names in all datasets.
+- Use reasonable variable names in all datasets. Omit rows that do not include dumpster-specific data
 
 - In dataset "dat_bakers", the variable "baker_name" had different name and form 
 from other two datasets, so separate this variable into two columns "baker_first_name" 
