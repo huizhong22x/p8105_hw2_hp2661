@@ -9,6 +9,7 @@ output: github_document
 library(tidyverse)
 library(dplyr)
 library(readxl)
+library(knitr)
 ```
 
 # Problem 1
@@ -284,10 +285,17 @@ Variables "signature_bake", "show_stopper" and "technical" have missing values.
 ```{r}
 star_baker = dat_merge_f |> 
   filter(series >= 5 & series <= 10 & result %in% c("STAR BAKER", "WINNER")) |> 
-  select(series, episode, result, baker) |> 
+  select(series, episode, baker) |> 
   arrange(series, episode)
 
-print(star_baker, n = 60)
+star_baker_wide = star_baker |> 
+  pivot_wider(
+    names_from = series, 
+    values_from = baker, 
+    names_glue = "star_baker_{series}/winner_{series}"
+  )
+
+kable(star_baker_wide[1:10, ], format = "markdown")
 ```
 
 - Nadiya  obtained 3 "star baker" in series 6. 
