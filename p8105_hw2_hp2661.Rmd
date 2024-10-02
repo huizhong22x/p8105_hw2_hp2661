@@ -123,12 +123,12 @@ Import the dataset and clean the sheet.
 
 ```{r}
 MR = read_excel(
-  path = "./202309 Trash Wheel Collection Data.xlsx", 
+  path = "./202409 Trash Wheel Collection Data.xlsx", 
   sheet = 1, 
-  range = "A2:N586"
+  range = "A2:N653"
   ) |> 
   janitor::clean_names() |> 
-  filter(!is.na(dumpster)) |> 
+  drop_na() |>
   mutate(
     sports_balls = as.integer(round(sports_balls, 0)), 
     source = "MR", 
@@ -136,23 +136,23 @@ MR = read_excel(
   )
 
 Professor = read_excel(
-  path = "./202309 Trash Wheel Collection Data.xlsx", 
+  path = "./202409 Trash Wheel Collection Data.xlsx", 
   sheet = 2, 
-  range = "A2:M108"
+  range = "A2:M121"
   ) |> 
   janitor::clean_names() |> 
-  filter(!is.na(dumpster)) |> 
+  drop_na() |> 
   mutate(
     source = "Professor"
   )
 
 Gwynnda = read_excel(
-  path = "./202309 Trash Wheel Collection Data.xlsx", 
+  path = "./202409 Trash Wheel Collection Data.xlsx", 
   sheet = 4, 
-  range = "A2:L157"
+  range = "A2:L265"
   ) |> 
   janitor::clean_names() |> 
-  filter(!is.na(dumpster)) |> 
+  drop_na() |>
   mutate(
     source = "Gwynnda"
   )
@@ -165,13 +165,13 @@ str(trash_tidy)
 ```
 
 There are `r nrow(trash_tidy)` observations and `r ncol(trash_tidy)` variables 
-including 12 numeric variables (eg., weight_tons, cigarette_butts, homes_powered) 
-and 2 character variables (month, source). 
+including 11 numeric variables (eg., weight_tons, cigarette_butts, homes_powered) 
+and 2 character variables (month, source), 1 integer variable and 1 date variable. 
 
 ```{r results='hide'}
 # total weight of trash collected by Professor Trash Wheel
 
-trash_tidy |> 
+total_weight <- trash_tidy |> 
   filter(
     source == "Professor"
   ) |> 
@@ -181,7 +181,7 @@ trash_tidy |>
 
 # total number of cigarette butts collected by Gwynnda in June of 2022
 
-trash_tidy |> 
+total_num <- trash_tidy |> 
   filter(
     source == "Gwynnda",
     year == 2022, 
@@ -190,11 +190,21 @@ trash_tidy |>
   summarize(
     total_ciga_gwy = sum(cigarette_butts, na.rm = TRUE)
   )
+
+total_num2 <- trash_tidy |> 
+  filter(
+    source == "Gwynnda",
+    year == 2023, 
+    month == "June"
+  ) |> 
+  summarize(
+    total_ciga_gwy = sum(cigarette_butts, na.rm = TRUE)
+  )
 ```
 
-The total weight of trash collected by Professor Trash Wheel is 216.26 tons.
-The total number of cigarette butts collected by Gwynnda in June of 2022 is 18120.
-
+The total weight of trash collected by Professor Trash Wheel is `r total_weight` tons.
+The total number of cigarette butts collected by Gwynnda in June of 2022 is `r total_num`.
+The total number of cigarette butts collected by Gwynnda in June of 2023 is `r total_num2`.
 
 # Problem 3
 
@@ -269,7 +279,7 @@ in column "baker" to "Jo".
 
 **Briefly Discussion:**
 
-There are 710 rows and 11 columns, including 7 character variables (eg., baker, 
+There are `r nrow(dat_merge_f)` rows and `r ncol(dat_merge_f)` columns, including 7 character variables (eg., baker, 
 result, show_stopper) and 4 numeric variables (eg., series, episode, technical). 
 Variables "signature_bake", "show_stopper" and "technical" have missing values.
 
@@ -281,7 +291,7 @@ star_baker = dat_merge_f |>
   select(series, episode, result, baker) |> 
   arrange(series, episode)
 
-star_baker
+print(star_baker, n = 60)
 ```
 
 - Nadiya  obtained 3 "star baker" in series 6. 
@@ -312,14 +322,9 @@ average_5 = dat_viewers |>
   mean(na.rm = T)
 ```
 
-```{r results='hide'}
-average_1
-average_5
-```
-
-The average viewership in Season 1 is 2.77. 
+The average viewership in Season 1 is `r average_1`. 
 \
-The average viewership in Season 5 is 10.04. 
+The average viewership in Season 5 is `r average_5`. 
 
 
 
